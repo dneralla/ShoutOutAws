@@ -1,6 +1,6 @@
 package edu.illinois.cc;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletException;
@@ -8,19 +8,31 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.CanonicalGrantee;
+import org.jets3t.service.acl.EmailAddressGrantee;
+import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.utils.ServiceUtils;
 
 @WebServlet("/ShoutoutServlet")
 public class ShoutoutServlet extends HttpServlet {
+
 	private static final long serialVersionUID = 1L;
-	private static final String AWS_ACCESS_KEY = "";
-	private static final String AWS_SECRET_KEY = "";
-	private static final String DELEMITER = "";
-	private static String fileObject = "";
+	private static final String awsAccessKey = "AKIAJ5TMYC3O6NA4YRZA";
+	private static final String awsSecretKey  = "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";
+	private static final String DELEMITER = "/";
+	//private static String fileObject = "";
 	private static S3Service s3Service = null;
 
 	public ShoutoutServlet() {
@@ -29,30 +41,50 @@ public class ShoutoutServlet extends HttpServlet {
 
 	protected void doGet(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-
+		
+		setS3Service();
+		
+		PrintWriter out = response.getWriter();
+		
+		out.println("HELLOOOOO!!!");	
+		
+		try {
+			S3Bucket testBucket = s3Service.getOrCreateBucket("Team9Bucket");
+			S3Bucket[] myBuckets = s3Service.listAllBuckets();
+			out.println("How many buckets do I have in S3? " + myBuckets.length);
+		}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+		
 	}
 
 	protected void doPost(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
+		setS3Service();
 		String shoutOut = request.getParameter("shout");
 		String name = request.getParameter("name");
 		String bucketName = "Team9Bucket";
-		storeInS3Bucket(shoutOut, name, bucketName);
+	
+		PrintWriter out = response.getWriter();
+		out.println("Thanks " + name + ", your shout was " + shoutOut);	
+		// storeInS3Bucket(shoutOut, name, bucketName);
 
 	}
 
 	private void setS3Service() {
 		try {
-			AWSCredentials awsCredentials = new AWSCredentials(AWS_ACCESS_KEY,
-					AWS_SECRET_KEY);
-			this.s3Service = new RestS3Service(awsCredentials);
+			AWSCredentials awsCredentials = new AWSCredentials(ShoutoutServlet.awsAccessKey ,
+																ShoutoutServlet.awsSecretKey );
+			ShoutoutServlet.s3Service = new RestS3Service(awsCredentials);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 	private boolean isS3ServiceExists() {
-		return this.s3Service != null;
+		return ShoutoutServlet.s3Service != null;
 	}
 
 	private boolean isBucketExists(String bucketName) {
@@ -114,7 +146,7 @@ public class ShoutoutServlet extends HttpServlet {
 	private List<String[]> getShoutData(String bucketName) {
 		List<String[]> resultList = new ArrayList<String[]>();
 		try {
-			S3Object[] objects = s3Service.listObjects(getBucket(bucketName));
+			S3Object[] objects = s3Service.listObjects(bucketName); //listObjects(getBucket(bucketName));
 			for (int o = 0; o < objects.length; o++) {
 				resultList.add(getDataFromObject(objects[o]));
 
